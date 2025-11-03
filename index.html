@@ -272,23 +272,35 @@
             <table id="course-table" class="data-table">
                 <thead>
                 <tr>
-                    <th>类别</th>
-                    <th>主讲教师</th>
-                    <th>课程名称</th>
-                    <th class="sortable" data-sort="credits">
+                    <th class="sortable" data-sort="类别">
+                        类别
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="主讲教师">
+                        主讲教师
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="名称">
+                        课程名称
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="学分">
                         学分
                         <span class="sort-indicator"></span>
                     </th>
-                    <th class="sortable" data-sort="deadline">
+                    <th class="sortable" data-sort="报名截止时间">
                         报名截止时间
                         <span class="sort-indicator"></span>
                     </th>
-                    <th>招收情况</th>
-                    <th class="sortable" data-sort="start">
+                    <th class="sortable" data-sort="招收情况">
+                        招收情况
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="开始时间">
                         开始时间
                         <span class="sort-indicator"></span>
                     </th>
-                    <th class="sortable" data-sort="end">
+                    <th class="sortable" data-sort="结束时间">
                         结束时间
                         <span class="sort-indicator"></span>
                     </th>
@@ -300,6 +312,9 @@
             </table>
             <div id="loading" class="loading">加载中...</div>
             <div id="no-results" class="no-results">暂无符合条件的课程</div>
+            <div id="pagination" class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
+                <!-- 分页控件将通过JavaScript动态生成 -->
+            </div>
         </div>
 
         <footer>

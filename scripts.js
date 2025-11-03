@@ -34,10 +34,16 @@ async function loadData() {
         updateStatistics();
         
         // 隐藏加载状态
-        document.getElementById('loading').style.display = 'none';
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
     } catch (error) {
         console.error('Error loading data:', error);
-        document.getElementById('loading').textContent = '加载数据失败，请刷新页面重试';
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.textContent = '加载数据失败，请刷新页面重试';
+        }
     }
 }
 
@@ -82,6 +88,8 @@ function setupEventListeners() {
 
 // 应用筛选器
 function applyFilters() {
+    // 筛选时重置到第一页
+    currentPage = 1;
     const category = document.getElementById('category').value;
     const teacher = document.getElementById('teacher').value.toLowerCase();
     const courseName = document.getElementById('course-name').value.toLowerCase();
@@ -154,25 +162,29 @@ function applySorting(field = currentSortField, direction = currentSortDirection
         sortedCourses = [...filteredCourses].sort((a, b) => {
             let aValue, bValue;
             
+            // 首先检查是否是已知的特殊类型字段
             switch (field) {
-                case 'credits':
+                case '学分':
                     aValue = parseFloat(a['学分']) || 0;
                     bValue = parseFloat(b['学分']) || 0;
                     break;
-                case 'deadline':
+                case '报名截止时间':
                     aValue = new Date(a['报名截止时间']);
                     bValue = new Date(b['报名截止时间']);
                     break;
-                case 'start':
+                case '开始时间':
                     aValue = new Date(a['开始时间']);
                     bValue = new Date(b['开始时间']);
                     break;
-                case 'end':
+                case '结束时间':
                     aValue = new Date(a['结束时间']);
                     bValue = new Date(b['结束时间']);
                     break;
                 default:
-                    return 0;
+                    // 对于其他字段，尝试作为文本处理
+                    aValue = (a[field] || '').toString().toLowerCase();
+                    bValue = (b[field] || '').toString().toLowerCase();
+                    break;
             }
             
             if (aValue < bValue) return direction === 'asc' ? -1 : 1;
@@ -207,15 +219,25 @@ function updateTable() {
     const tableBody = document.getElementById('course-list');
     const noResults = document.getElementById('no-results');
     
+    // 检查必要的DOM元素是否存在
+    if (!tableBody) {
+        console.error('Error: Table body element not found');
+        return;
+    }
+    
     // 清空表格
     tableBody.innerHTML = '';
     
     if (sortedCourses.length === 0) {
-        noResults.style.display = 'block';
+        if (noResults) {
+            noResults.style.display = 'block';
+        }
         return;
     }
     
-    noResults.style.display = 'none';
+    if (noResults) {
+        noResults.style.display = 'none';
+    }
     
     // 获取当前页的数据
     const startIndex = (currentPage - 1) * rowsPerPage;
@@ -290,7 +312,7 @@ function updateTable() {
         });
     
     // 如果数据不多，不需要分页
-    if (filteredCourses.length <= rowsPerPage) {
+    if (sortedCourses.length <= rowsPerPage) {
         return;
     }
     
@@ -300,8 +322,66 @@ function updateTable() {
 
 // 生成分页控件
 function generatePagination() {
-    // 简化版：只在需要时实现完整分页
-    // 目前数据量不大，可以先不实现复杂的分页
+    // 计算总页数
+    const totalPages = Math.ceil(sortedCourses.length / rowsPerPage);
+    
+    // 获取分页容器
+    const paginationContainer = document.getElementById('pagination');
+    
+    // 检查分页容器是否存在
+    if (!paginationContainer) {
+        console.error('Error: Pagination container element not found');
+        return;
+    }
+    
+    paginationContainer.innerHTML = '';
+    
+    // 创建分页按钮
+    const pageInfo = document.createElement('span');
+    pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页`;
+    pageInfo.className = 'pagination-info';
+    paginationContainer.appendChild(pageInfo);
+    
+    // 上一页按钮
+    const prevButton = document.createElement('button');
+    prevButton.textContent = '上一页';
+    prevButton.className = 'btn btn-secondary';
+    prevButton.disabled = currentPage === 1;
+    prevButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            updateTable();
+        }
+    });
+    paginationContainer.appendChild(prevButton);
+    
+    // 页码按钮（简化为只显示当前页前后各1页）
+    for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `btn ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
+        pageButton.addEventListener('click', () => {
+            currentPage = i;
+            updateTable();
+        });
+        paginationContainer.appendChild(pageButton);
+    }
+    
+    // 下一页按钮
+    const nextButton = document.createElement('button');
+    nextButton.textContent = '下一页';
+    nextButton.className = 'btn btn-secondary';
+    nextButton.disabled = currentPage === totalPages;
+    nextButton.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            updateTable();
+        }
+    });
+    paginationContainer.appendChild(nextButton);
+    
+    // 确保分页容器可见
+    paginationContainer.style.display = 'block';
 }
 
 // 更新统计信息
