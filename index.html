@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拓展教育课程查询系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="reduced-header">
+            <h1>拓展教育课程查询系统</h1>
+            <p class="subtitle">基于Excel数据的课程筛选与排序工具</p>
+        </header>
+
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label for="category">类别筛选：</label>
+                    <select id="category" class="filter-select">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label for="teacher">主讲教师：</label>
+                    <input type="text" id="teacher" placeholder="输入教师姓名" class="filter-input">
+                </div>
+                
+                <div class="filter-item">
+                    <label for="course-name">课程名称：</label>
+                    <input type="text" id="course-name" placeholder="输入课程名称" class="filter-input">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-item full-width button-control">
+                    <!-- 将统计部分移动到这里，并放置在左侧 -->
+                    <div class="stats-section inline-stats">
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">总课程数</div>
+                            <div class="stat-number-mini" id="total-courses">0</div>
+                        </div>
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">筛选后课程数</div>
+                            <div class="stat-number-mini" id="filtered-courses">0</div>
+                        </div>
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">可报名课程数</div>
+                            <div class="stat-number-mini" id="available-courses">0</div>
+                        </div>
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">课程类别数</div>
+                            <div class="stat-number-mini" id="total-categories">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="buttons-container">
+                        <button id="search-btn" class="btn btn-primary">搜索</button>
+                        <button id="reset-btn" class="btn btn-secondary">重置筛选</button>
+                        <button id="export-btn" class="btn btn-success">导出数据</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <style>
+            /* 缩小的头部样式 */
+            .reduced-header {
+                padding: 10px 0;
+                margin-bottom: 10px;
+            }
+            
+            .reduced-header h1 {
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+            
+            .reduced-header .subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 0;
+            }
+            
+            /* 按钮控制区域与统计部分的布局 - 减少高度 */
+            .button-control {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 20px;
+                padding: 13px;
+                background-color: #f8fafc;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* 统计部分内联样式 - 横向排列并居中 - 减少高度 */
+            .stats-section.inline-stats {
+                display: flex;
+                flex-direction: row;
+                gap: 15px;
+                flex-shrink: 0;
+                width: auto;
+                align-items: stretch;
+                margin: 0 auto;
+                justify-content: center;
+            }
+            
+            .stat-card-mini {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 12px 15px;
+                font-size: 0.9rem;
+                text-align: center;
+                background-color: #f8fafc;
+                border-radius: 6px;
+                border: 1px solid #e2e8f0;
+                min-width: 100px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            
+            .stat-number-mini {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #3b82f6;
+                margin: 4px 0 0 0;
+            }
+            
+            .stat-label-mini {
+                font-size: 0.8rem;
+                color: #64748b;
+                margin: 0;
+                font-weight: 600;
+            }
+            
+            /* 按钮容器 */
+            .buttons-container {
+                display: flex;
+                gap: 8px;
+                margin-left: auto;
+            }
+            
+            .buttons-container .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            /* 响应式调整 */
+            @media (max-width: 768px) {
+                .button-control {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 10px;
+                }
+                
+                .stats-section.inline-stats {
+                    width: 100%;
+                    flex-direction: row;
+                    justify-content: space-around;
+                }
+                
+                .stat-card-mini {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 2px;
+                    padding: 0 5px;
+                }
+                
+                .buttons-container {
+                    justify-content: center;
+                    margin-left: 0;
+                }
+            }
+            }
+            
+            /* 按钮控制样式 */
+            .button-control {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            
+            .button-control .btn {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+            
+            /* 可排序表头样式 */
+            .sortable {
+                cursor: pointer;
+                user-select: none;
+                position: relative;
+                padding-right: 20px;
+            }
+            
+            .sortable:hover {
+                background-color: #f1f5f9;
+            }
+            
+            .sort-indicator {
+                position: absolute;
+                right: 5px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 0.7rem;
+                color: #94a3b8;
+            }
+            
+            .sort-indicator::before {
+                content: '↓';
+                opacity: 0.5;
+                margin-right: 2px;
+            }
+            
+            .sort-indicator::after {
+                content: '↑';
+                opacity: 0.5;
+            }
+            
+            .sort-asc .sort-indicator::after,
+            .sort-desc .sort-indicator::before {
+                opacity: 1;
+                color: #6366f1;
+            }
+            
+            .sort-asc .sort-indicator::before,
+            .sort-desc .sort-indicator::after {
+                opacity: 0.5;
+            }
+            
+            /* 加载状态样式 */
+            #loading {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 200px;
+                font-size: 18px;
+                color: #4a5568;
+            }
+            
+            /* 表格容器样式 */
+            .table-container {
+                overflow-x: auto;
+                margin-top: 10px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                border-radius: 8px;
+            }
+            
+            /* 表格样式 */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                background-color: white;
+            }
+            
+            th, td {
+                padding: 12px 15px;
+                text-align: left;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            th {
+                background-color: #f7fafc;
+                font-weight: 600;
+                color: #2d3748;
+            }
+            
+            tr:hover {
+                background-color: #f7fafc;
+            }
+        </style>
+
+        <div class="table-container">
+            <table id="course-table" class="data-table">
+                <thead>
+                <tr>
+                    <th>类别</th>
+                    <th>主讲教师</th>
+                    <th>课程名称</th>
+                    <th class="sortable" data-sort="credits">
+                        学分
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="deadline">
+                        报名截止时间
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th>招收情况</th>
+                    <th class="sortable" data-sort="start">
+                        开始时间
+                        <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="end">
+                        结束时间
+                        <span class="sort-indicator"></span>
+                    </th>
+                </tr>
+            </thead>
+                <tbody id="course-list">
+                    <!-- 数据将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+            <div id="loading" class="loading">加载中...</div>
+            <div id="no-results" class="no-results">暂无符合条件的课程</div>
+        </div>
+
+        <footer>
+            <p>© 2025 拓展教育课程查询系统</p>
+        </footer>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
