@@ -1,6 +1,7 @@
 // 全局变量
 let allCourses = [];
 let filteredCourses = [];
+let sortedCourses = [];
 let currentPage = 1;
 const rowsPerPage = 20;
 let categoryChart = null;
@@ -56,7 +57,6 @@ function initializeFilters() {
 
 // 设置事件监听器
 function setupEventListeners() {
-    document.getElementById('search-btn').addEventListener('click', applyFilters);
     document.getElementById('reset-btn').addEventListener('click', resetFilters);
     document.getElementById('export-btn').addEventListener('click', exportData);
     
@@ -142,9 +142,6 @@ function handleHeaderClick(field) {
     updateTable();
 }
 
-// 全局变量
-sortedCourses = [];
-
 // 当前排序状态
 let currentSortField = null;
 let currentSortDirection = 'asc';
@@ -226,41 +223,71 @@ function updateTable() {
     const currentCourses = sortedCourses.slice(startIndex, endIndex);
     
     // 填充表格
-    currentCourses.forEach(course => {
-        const row = document.createElement('tr');
-        
-        // 课程属性
-        const properties = [
-            '类别', '主讲教师', '名称', '学分', '报名截止时间',
-            '招收情况', '开始时间', '结束时间'
-        ];
-        
-        properties.forEach(property => {
-            const cell = document.createElement('td');
-            cell.textContent = course[property] || '-';
+        currentCourses.forEach(course => {
+            const row = document.createElement('tr');
             
-            // 添加一些样式优化
-            if (property === '学分') {
-                cell.style.fontWeight = '600';
-                cell.style.color = '#667eea';
-            }
+            // 课程属性
+            const properties = [
+                '类别', '主讲教师', '名称', '学分', '报名截止时间',
+                '招收情况', '开始时间', '结束时间'
+            ];
             
-            if (property === '申请状态') {
-                const status = course[property];
-                if (status === '未申请') {
-                    cell.style.color = '#ed8936';
-                } else if (status === '已申请') {
-                    cell.style.color = '#3182ce';
-                } else if (status === '已通过') {
-                    cell.style.color = '#38a169';
+            // 获取当前时间用于比对截止时间
+            const now = new Date();
+            
+            // 检查截止时间是否已过期
+            const deadlinePassed = course['报名截止时间'] ? new Date(course['报名截止时间']) < now : false;
+            
+            // 检查招收情况是否已满
+            let recruitmentFull = false;
+            if (course['招收情况']) {
+                // 尝试从招收情况字符串中提取当前人数和最大人数
+                const match = course['招收情况'].match(/(\d+)\/(\d+)/);
+                if (match && match.length === 3) {
+                    const current = parseInt(match[1]);
+                    const max = parseInt(match[2]);
+                    recruitmentFull = current >= max;
                 }
             }
             
-            row.appendChild(cell);
+            properties.forEach(property => {
+                const cell = document.createElement('td');
+                cell.textContent = course[property] || '-';
+                
+                // 添加一些样式优化
+                if (property === '学分') {
+                    cell.style.fontWeight = '600';
+                    cell.style.color = '#667eea';
+                }
+                
+                if (property === '申请状态') {
+                    const status = course[property];
+                    if (status === '未申请') {
+                        cell.style.color = '#ed8936';
+                    } else if (status === '已申请') {
+                        cell.style.color = '#3182ce';
+                    } else if (status === '已通过') {
+                        cell.style.color = '#38a169';
+                    }
+                }
+                
+                // 如果截止时间已过期或招收已满，将文本设置为灰色
+                if ((property === '报名截止时间' && deadlinePassed) || 
+                    (property === '招收情况' && (deadlinePassed || recruitmentFull))) {
+                    cell.style.color = '#94a3b8';
+                    cell.style.fontStyle = 'italic';
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            // 如果课程已过期或招收已满，给整行添加提示性样式
+            if (deadlinePassed || recruitmentFull) {
+                row.classList.add('expired-course');
+            }
+            
+            tableBody.appendChild(row);
         });
-        
-        tableBody.appendChild(row);
-    });
     
     // 如果数据不多，不需要分页
     if (filteredCourses.length <= rowsPerPage) {
