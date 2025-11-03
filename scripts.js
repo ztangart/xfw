@@ -134,9 +134,10 @@ function handleHeaderClick(field) {
         // 如果点击的是当前排序字段，切换排序方向
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-        // 否则设置为新的排序字段，并默认为升序
+        // 否则设置为新的排序字段
         currentSortField = field;
-        currentSortDirection = 'asc';
+        // 对于报名截止时间，默认排序方向为降序（从大到小），其他字段默认为升序
+        currentSortDirection = field === '报名截止时间' ? 'desc' : 'asc';
     }
     
     // 应用新的排序样式

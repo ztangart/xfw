@@ -50,10 +50,7 @@
                             <div class="stat-label-mini">可报名课程数</div>
                             <div class="stat-number-mini" id="available-courses">0</div>
                         </div>
-                        <div class="stat-card-mini">
-                            <div class="stat-label-mini">课程类别数</div>
-                            <div class="stat-number-mini" id="total-categories">0</div>
-                        </div>
+
                     </div>
                     
                     <div class="buttons-container">
@@ -217,6 +214,44 @@
                 opacity: 0.5;
             }
             
+            /* 表格包装器，优化移动端显示 */
+            .table-wrapper {
+                overflow-x: auto;
+                width: 100%;
+                position: relative;
+            }
+            
+            /* 移动端优化：表头固定 */
+            @media (max-width: 768px) {
+                .table-wrapper {
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: thin;
+                }
+                
+                /* 给用户明显的滚动提示 */
+                .table-wrapper::after {
+                    content: '';
+                    position: absolute;
+                    right: 5px;
+                    top: 10px;
+                    width: 20px;
+                    height: 20px;
+                    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z'/%3E%3C/svg%3E") no-repeat center;
+                    background-size: contain;
+                    opacity: 0.6;
+                    animation: pulse 2s infinite;
+                }
+                
+                @keyframes pulse {
+                    0%, 100% {
+                        opacity: 0.6;
+                    }
+                    50% {
+                        opacity: 0.3;
+                    }
+                }
+            }
+            
             /* 加载状态样式 */
             #loading {
                 display: flex;
@@ -269,50 +304,53 @@
         </style>
 
         <div class="table-container">
-            <table id="course-table" class="data-table">
-                <thead>
-                <tr>
-                    <th class="sortable" data-sort="类别">
-                        类别
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="主讲教师">
-                        主讲教师
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="名称">
-                        课程名称
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="学分">
-                        学分
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="报名截止时间">
-                        报名截止时间
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="招收情况">
-                        招收情况
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="开始时间">
-                        开始时间
-                        <span class="sort-indicator"></span>
-                    </th>
-                    <th class="sortable" data-sort="结束时间">
-                        结束时间
-                        <span class="sort-indicator"></span>
-                    </th>
-                </tr>
-            </thead>
-                <tbody id="course-list">
-                    <!-- 数据将通过JavaScript动态填充 -->
-                </tbody>
-            </table>
+            <!-- 表格在移动端可水平滚动 -->
+            <div class="table-wrapper">
+                <table id="course-table" class="data-table">
+                    <thead>
+                    <tr>
+                        <th class="sortable" data-sort="类别">
+                            类别
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="主讲教师">
+                            主讲教师
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="名称">
+                            课程名称
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="学分">
+                            学分
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="报名截止时间">
+                            报名截止时间
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="招收情况">
+                            招收情况
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="开始时间">
+                            开始时间
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="结束时间">
+                            结束时间
+                            <span class="sort-indicator"></span>
+                        </th>
+                    </tr>
+                </thead>
+                    <tbody id="course-list">
+                        <!-- 数据将通过JavaScript动态填充 -->
+                    </tbody>
+                </table>
+            </div>
             <div id="loading" class="loading">加载中...</div>
             <div id="no-results" class="no-results">暂无符合条件的课程</div>
-            <div id="pagination" class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin: 20px 0;">
+            <div id="pagination" class="pagination" style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin: 15px 0; padding: 10px;">
                 <!-- 分页控件将通过JavaScript动态生成 -->
             </div>
         </div>

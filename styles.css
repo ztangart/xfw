@@ -298,12 +298,17 @@ footer {
     }
 
     header h1 {
-        font-size: 2rem;
+        font-size: 1.6rem;
+    }
+
+    .filter-section {
+        padding: 15px;
     }
 
     .filter-row {
         flex-direction: column;
         gap: 15px;
+        margin-bottom: 15px;
     }
 
     .filter-item {
@@ -316,19 +321,51 @@ footer {
 
     .btn {
         margin: 5px;
+        padding: 8px 15px;
+        font-size: 0.9rem;
     }
 
     .stats-section {
         grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
     }
 
     .chart-section {
         height: 300px;
     }
 
+    /* 优化表格在移动端的显示 */
+    .table-container {
+        margin-top: 15px;
+    }
+
     .data-table {
         display: block;
         overflow-x: auto;
+        font-size: 0.9rem;
+    }
+
+    .data-table th, .data-table td {
+        padding: 8px 10px;
+        min-width: 100px;
+    }
+
+    /* 优化分页控件 */
+    .pagination {
+        flex-wrap: wrap;
+        padding: 15px 10px;
+    }
+
+    .pagination button {
+        padding: 6px 12px;
+        margin: 4px;
+        font-size: 0.9rem;
+    }
+
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 10px;
     }
 }
 
@@ -338,13 +375,43 @@ footer {
     }
 
     header h1 {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
     }
 
     .stat-number {
         font-size: 2rem;
     }
-}
+
+    /* 进一步优化小屏幕上的表格显示 */
+    .data-table th, .data-table td {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+    }
+
+    /* 适应小屏幕的分页按钮 */
+    .pagination {
+        padding: 10px 5px;
+    }
+
+    .pagination button {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+        min-width: 35px;
+    }
+
+    /* 调整统计卡片在极小屏幕上的显示 */
+    .stat-card-mini {
+        padding: 8px 10px;
+        min-width: 80px;
+    }
+
+    .stat-number-mini {
+        font-size: 1rem;
+    }
+
+    .stat-label-mini {
+        font-size: 0.75rem;
+    }
 
 /* 动画效果 */
 @keyframes fadeIn {
