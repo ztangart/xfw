@@ -12,114 +12,184 @@ window.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// 加载数据
+// 加载数据 - 性能优化版本
 async function loadData() {
     try {
-        const response = await fetch('data.json');
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
+        // 显示加载状态
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.style.display = 'block';
         }
-        allCourses = await response.json();
         
-        // 清理教师姓名中的多余空格
-        allCourses = allCourses.map(course => ({
-            ...course,
-            '主讲教师': course['主讲教师'].trim()
-        }));
+        // 性能优化：使用缓存机制避免重复请求
+        if (window.cachedCourseData) {
+            allCourses = window.cachedCourseData;
+        } else {
+            const response = await fetch('data.json');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            // 直接处理原始数据，避免额外的数组复制
+            const rawData = await response.json();
+            
+            // 预处理数据并缓存结果
+            allCourses = rawData.map(course => {
+                // 安全的日期转换函数
+                const safeDateToTimestamp = (dateString) => {
+                    try {
+                        if (!dateString || typeof dateString !== 'string') return 0;
+                        const date = new Date(dateString);
+                        return isNaN(date.getTime()) ? 0 : date.getTime();
+                    } catch (e) {
+                        return 0;
+                    }
+                };
+                
+                return {
+                    ...course,
+                    '主讲教师': course['主讲教师'] && course['主讲教师'].trim ? course['主讲教师'].trim() : '',
+                    // 安全转换日期为时间戳
+                    '_deadlineTimestamp': safeDateToTimestamp(course['报名截止时间']),
+                    '_startTimestamp': safeDateToTimestamp(course['开始时间']),
+                    '_endTimestamp': safeDateToTimestamp(course['结束时间']),
+                    '_credit': course['学分'] && !isNaN(parseFloat(course['学分'])) ? parseFloat(course['学分']) : 0
+                };
+            });
+            
+            // 缓存处理后的数据
+            window.cachedCourseData = allCourses;
+        }
         
+        // 避免不必要的数组复制
         filteredCourses = [...allCourses];
         sortedCourses = [...filteredCourses];
-        initializeFilters();
-        updateTable();
-        updateStatistics();
         
-        // 隐藏加载状态
-        const loadingElement = document.getElementById('loading');
+        // 初始化组件
+        initializeFilters();
+        
+        // 优先隐藏加载状态
         if (loadingElement) {
             loadingElement.style.display = 'none';
         }
+        
+        // 异步更新表格和统计信息，不阻塞UI
+        setTimeout(() => {
+            updateTable();
+            updateStatistics();
+        }, 0);
+        
     } catch (error) {
         console.error('Error loading data:', error);
+        // 安全地更新加载状态元素
         const loadingElement = document.getElementById('loading');
-        if (loadingElement) {
+        if (loadingElement && loadingElement.textContent !== undefined) {
             loadingElement.textContent = '加载数据失败，请刷新页面重试';
+            loadingElement.style.display = 'block';
         }
     }
 }
 
-// 初始化筛选器
+// 初始化筛选器 - 简化版本（只保留类别筛选）
 function initializeFilters() {
-    // 获取所有唯一的类别
-    const categories = [...new Set(allCourses.map(course => course['类别']))];
+    // 缓存检查，避免重复初始化
+    if (window.filtersInitialized) {
+        return;
+    }
+    
     const categorySelect = document.getElementById('category');
     
-    categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        categorySelect.appendChild(option);
-    });
-}
-
-// 设置事件监听器
-function setupEventListeners() {
-    document.getElementById('reset-btn').addEventListener('click', resetFilters);
-    document.getElementById('export-btn').addEventListener('click', exportData);
+    // 收集所有唯一的类别
+    const categories = [];
+    const categoryMap = new Map();
     
-    // 添加表头排序事件
-    document.querySelectorAll('th.sortable').forEach(th => {
-        th.addEventListener('click', () => {
-            const field = th.getAttribute('data-sort');
-            handleHeaderClick(field);
+    // 单次遍历收集类别
+    allCourses.forEach(course => {
+        const category = course['类别'];
+        if (category && !categoryMap.has(category)) {
+            categoryMap.set(category, true);
+            categories.push(category);
+        }
+    });
+    
+    // 使用文档片段减少DOM操作
+    if (categorySelect) {
+        const fragment = document.createDocumentFragment();
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            fragment.appendChild(option);
         });
-    });
+        categorySelect.appendChild(fragment);
+    }
     
-    // 添加实时筛选功能
-    const filterInputs = document.querySelectorAll('.filter-input');
-    filterInputs.forEach(input => {
-        input.addEventListener('input', debounce(applyFilters, 300));
-    });
-    
-    const filterSelects = document.querySelectorAll('.filter-select');
-    filterSelects.forEach(select => {
-        select.addEventListener('change', applyFilters);
-    });
+    // 标记筛选器已初始化
+    window.filtersInitialized = true;
 }
 
-// 应用筛选器
+// 设置事件监听器 - 简化版本
+function setupEventListeners() {
+    // 缓存检查，避免重复设置事件监听器
+    if (window.eventListenersInitialized) {
+        return;
+    }
+    
+    // 获取必要的DOM元素
+    const tableHeader = document.querySelector('.data-table thead');
+    const categorySelect = document.getElementById('category');
+    
+    // 使用事件委托优化表头排序事件
+    if (tableHeader && tableHeader.addEventListener) {
+        tableHeader.addEventListener('click', (event) => {
+            try {
+                const th = event.target.closest('th.sortable');
+                if (th && th.getAttribute) {
+                    const field = th.getAttribute('data-sort');
+                    handleHeaderClick(field);
+                }
+            } catch (error) {
+                console.error('Error handling header click:', error);
+            }
+        });
+    }
+    
+    // 只为类别筛选添加事件监听
+    if (categorySelect) {
+        categorySelect.addEventListener('change', applyFilters);
+    }
+    
+    // 标记事件监听器已初始化
+    window.eventListenersInitialized = true;
+}
+
+// 应用筛选器 - 简化版本（只保留类别筛选）
 function applyFilters() {
     // 筛选时重置到第一页
     currentPage = 1;
-    const category = document.getElementById('category').value;
-    const teacher = document.getElementById('teacher').value.toLowerCase();
-    const courseName = document.getElementById('course-name').value.toLowerCase();
     
-    filteredCourses = allCourses.filter(course => {
-        // 类别筛选
-        if (category && course['类别'] !== category) {
-            return false;
-        }
-        
-        // 教师筛选
-        if (teacher && !course['主讲教师'].toLowerCase().includes(teacher)) {
-            return false;
-        }
-        
-        // 课程名称筛选
-        if (courseName && !course['名称'].toLowerCase().includes(courseName)) {
-            return false;
-        }
-        
-        return true;
-    });
+    // 只获取类别筛选值
+    const category = document.getElementById('category').value;
+    
+    // 性能优化：当筛选条件为空时，直接使用全部数据
+    if (!category) {
+        filteredCourses = [...allCourses];
+    } else {
+        // 简化的筛选逻辑，只保留类别筛选
+        filteredCourses = allCourses.filter(course => {
+            // 类别筛选
+            return !category || course['类别'] === category;
+        });
+    }
     
     // 应用排序
     applySorting();
     
-    // 更新表格和统计信息
-    currentPage = 1;
-    updateTable();
-    updateStatistics();
+    // 异步更新表格和统计信息，避免阻塞UI
+    requestAnimationFrame(() => {
+        updateTable();
+        updateStatistics();
+    });
 }
 
 // 处理表头点击排序
@@ -155,67 +225,44 @@ function handleHeaderClick(field) {
 let currentSortField = null;
 let currentSortDirection = 'asc';
 
-// 应用排序
+// 应用排序 - 性能优化版本
 function applySorting(field = currentSortField, direction = currentSortDirection) {
     if (!field) {
         sortedCourses = [...filteredCourses];
-    } else {
+        return;
+    }
+    
+    // 预计算排序方向的比较乘数，避免在排序回调中重复判断
+    const sortMultiplier = direction === 'asc' ? 1 : -1;
+    
+    // 使用更高效的排序逻辑，根据字段类型选择不同的排序函数
+    if (field === '学分') {
         sortedCourses = [...filteredCourses].sort((a, b) => {
-            let aValue, bValue;
-            
-            // 首先检查是否是已知的特殊类型字段
-            switch (field) {
-                case '学分':
-                    aValue = parseFloat(a['学分']) || 0;
-                    bValue = parseFloat(b['学分']) || 0;
-                    break;
-                case '报名截止时间':
-                    aValue = new Date(a['报名截止时间']);
-                    bValue = new Date(b['报名截止时间']);
-                    break;
-                case '开始时间':
-                    aValue = new Date(a['开始时间']);
-                    bValue = new Date(b['开始时间']);
-                    break;
-                case '结束时间':
-                    aValue = new Date(a['结束时间']);
-                    bValue = new Date(b['结束时间']);
-                    break;
-                default:
-                    // 对于其他字段，尝试作为文本处理
-                    aValue = (a[field] || '').toString().toLowerCase();
-                    bValue = (b[field] || '').toString().toLowerCase();
-                    break;
-            }
-            
-            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-            return 0;
+            // 预先解析数字，避免在排序比较中重复解析
+            const aValue = parseFloat(a['学分']) || 0;
+            const bValue = parseFloat(b['学分']) || 0;
+            return (aValue - bValue) * sortMultiplier;
+        });
+    } else if (field === '报名截止时间' || field === '开始时间' || field === '结束时间') {
+        sortedCourses = [...filteredCourses].sort((a, b) => {
+            // 日期类型字段
+            const aValue = a[field] ? new Date(a[field]).getTime() : -Infinity;
+            const bValue = b[field] ? new Date(b[field]).getTime() : -Infinity;
+            return (aValue - bValue) * sortMultiplier;
+        });
+    } else {
+        // 文本类型字段
+        sortedCourses = [...filteredCourses].sort((a, b) => {
+            const aValue = (a[field] || '').toString().toLowerCase();
+            const bValue = (b[field] || '').toString().toLowerCase();
+            return aValue.localeCompare(bValue) * sortMultiplier;
         });
     }
 }
 
-// 重置筛选器
-function resetFilters() {
-    document.getElementById('category').value = '';
-    document.getElementById('teacher').value = '';
-    document.getElementById('course-name').value = '';
-    
-    // 重置排序状态
-    currentSortField = null;
-    currentSortDirection = 'asc';
-    document.querySelectorAll('th.sortable').forEach(th => {
-        th.classList.remove('sort-asc', 'sort-desc');
-    });
-    
-    filteredCourses = [...allCourses];
-    currentPage = 1;
-    applySorting(); // 应用默认排序
-    updateTable();
-    updateStatistics();
-}
+// 重置筛选功能已移除，类别筛选可以手动选择全部
 
-// 更新表格
+// 更新表格 - 性能优化版本
 function updateTable() {
     const tableBody = document.getElementById('course-list');
     const noResults = document.getElementById('no-results');
@@ -226,12 +273,13 @@ function updateTable() {
         return;
     }
     
-    // 清空表格
-    tableBody.innerHTML = '';
-    
     if (sortedCourses.length === 0) {
         if (noResults) {
             noResults.style.display = 'block';
+        }
+        // 使用更快的清空方法
+        while (tableBody.firstChild) {
+            tableBody.removeChild(tableBody.firstChild);
         }
         return;
     }
@@ -245,72 +293,65 @@ function updateTable() {
     const endIndex = startIndex + rowsPerPage;
     const currentCourses = sortedCourses.slice(startIndex, endIndex);
     
+    // 使用文档片段减少DOM操作次数
+    const fragment = document.createDocumentFragment();
+    
+    // 课程属性（提取为常量，避免重复创建数组）
+    const properties = [
+        '类别', '主讲教师', '名称', '报名截止时间', '学分',
+        '招收情况', '开始时间', '结束时间'
+    ];
+    
+    // 获取当前时间（只计算一次，避免在循环中重复创建）
+    const now = new Date();
+    
     // 填充表格
-        currentCourses.forEach(course => {
-            const row = document.createElement('tr');
+    currentCourses.forEach(course => {
+        const row = document.createElement('tr');
+        
+        // 检查截止时间是否已过期
+        const deadlinePassed = course['报名截止时间'] ? new Date(course['报名截止时间']) < now : false;
+        
+        // 检查招收情况是否已满（优化正则匹配逻辑）
+        let recruitmentFull = false;
+        const recruitmentText = course['招收情况'];
+        if (recruitmentText) {
+            const match = recruitmentText.match(/(\d+)\/(\d+)/);
+            recruitmentFull = match && match.length === 3 && parseInt(match[1]) >= parseInt(match[2]);
+        }
+        
+        // 应用行样式（如果需要）
+        if (deadlinePassed || recruitmentFull) {
+            row.classList.add('expired-course');
+        }
+        
+        // 创建单元格
+        properties.forEach(property => {
+            const cell = document.createElement('td');
+            cell.textContent = course[property] || '-';
             
-            // 课程属性
-            const properties = [
-                '类别', '主讲教师', '名称', '学分', '报名截止时间',
-                '招收情况', '开始时间', '结束时间'
-            ];
-            
-            // 获取当前时间用于比对截止时间
-            const now = new Date();
-            
-            // 检查截止时间是否已过期
-            const deadlinePassed = course['报名截止时间'] ? new Date(course['报名截止时间']) < now : false;
-            
-            // 检查招收情况是否已满
-            let recruitmentFull = false;
-            if (course['招收情况']) {
-                // 尝试从招收情况字符串中提取当前人数和最大人数
-                const match = course['招收情况'].match(/(\d+)\/(\d+)/);
-                if (match && match.length === 3) {
-                    const current = parseInt(match[1]);
-                    const max = parseInt(match[2]);
-                    recruitmentFull = current >= max;
-                }
+            // 应用单元格样式
+            if (property === '学分') {
+                cell.classList.add('credit-cell'); // 使用CSS类代替内联样式
             }
             
-            properties.forEach(property => {
-                const cell = document.createElement('td');
-                cell.textContent = course[property] || '-';
-                
-                // 添加一些样式优化
-                if (property === '学分') {
-                    cell.style.fontWeight = '600';
-                    cell.style.color = '#667eea';
-                }
-                
-                if (property === '申请状态') {
-                    const status = course[property];
-                    if (status === '未申请') {
-                        cell.style.color = '#ed8936';
-                    } else if (status === '已申请') {
-                        cell.style.color = '#3182ce';
-                    } else if (status === '已通过') {
-                        cell.style.color = '#38a169';
-                    }
-                }
-                
-                // 如果截止时间已过期或招收已满，将文本设置为灰色
-                if ((property === '报名截止时间' && deadlinePassed) || 
-                    (property === '招收情况' && (deadlinePassed || recruitmentFull))) {
-                    cell.style.color = '#94a3b8';
-                    cell.style.fontStyle = 'italic';
-                }
-                
-                row.appendChild(cell);
-            });
-            
-            // 如果课程已过期或招收已满，给整行添加提示性样式
-            if (deadlinePassed || recruitmentFull) {
-                row.classList.add('expired-course');
+            // 过期或满员状态的文本样式
+            if ((property === '报名截止时间' && deadlinePassed) || 
+                (property === '招收情况' && (deadlinePassed || recruitmentFull))) {
+                cell.classList.add('expired-text'); // 使用CSS类代替内联样式
             }
             
-            tableBody.appendChild(row);
+            row.appendChild(cell);
         });
+        
+        fragment.appendChild(row);
+    });
+    
+    // 清空表格并一次性添加所有行
+    while (tableBody.firstChild) {
+        tableBody.removeChild(tableBody.firstChild);
+    }
+    tableBody.appendChild(fragment);
     
     // 如果数据不多，不需要分页
     if (sortedCourses.length <= rowsPerPage) {
@@ -321,7 +362,7 @@ function updateTable() {
     generatePagination();
 }
 
-// 生成分页控件
+// 生成分页控件 - 性能优化版本
 function generatePagination() {
     // 计算总页数
     const totalPages = Math.ceil(sortedCourses.length / rowsPerPage);
@@ -335,110 +376,100 @@ function generatePagination() {
         return;
     }
     
-    paginationContainer.innerHTML = '';
+    // 使用文档片段减少DOM操作
+    const fragment = document.createDocumentFragment();
     
-    // 创建分页按钮
+    // 创建分页信息
     const pageInfo = document.createElement('span');
     pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页`;
     pageInfo.className = 'pagination-info';
-    paginationContainer.appendChild(pageInfo);
+    fragment.appendChild(pageInfo);
     
-    // 上一页按钮
+    // 创建上一页按钮
     const prevButton = document.createElement('button');
     prevButton.textContent = '上一页';
     prevButton.className = 'btn btn-secondary';
     prevButton.disabled = currentPage === 1;
-    prevButton.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            updateTable();
-        }
-    });
-    paginationContainer.appendChild(prevButton);
+    prevButton.addEventListener('click', handlePageChange.bind(null, currentPage - 1));
+    fragment.appendChild(prevButton);
     
-    // 页码按钮（简化为只显示当前页前后各1页）
-    for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
+    // 计算页码范围
+    const startPage = Math.max(1, currentPage - 1);
+    const endPage = Math.min(totalPages, currentPage + 1);
+    
+    // 创建页码按钮（复用事件处理器）
+    for (let i = startPage; i <= endPage; i++) {
         const pageButton = document.createElement('button');
         pageButton.textContent = i;
         pageButton.className = `btn ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
-        pageButton.addEventListener('click', () => {
-            currentPage = i;
-            updateTable();
-        });
-        paginationContainer.appendChild(pageButton);
+        pageButton.addEventListener('click', handlePageChange.bind(null, i));
+        fragment.appendChild(pageButton);
     }
     
-    // 下一页按钮
+    // 创建下一页按钮
     const nextButton = document.createElement('button');
     nextButton.textContent = '下一页';
     nextButton.className = 'btn btn-secondary';
     nextButton.disabled = currentPage === totalPages;
-    nextButton.addEventListener('click', () => {
-        if (currentPage < totalPages) {
-            currentPage++;
-            updateTable();
-        }
-    });
-    paginationContainer.appendChild(nextButton);
+    nextButton.addEventListener('click', handlePageChange.bind(null, currentPage + 1));
+    fragment.appendChild(nextButton);
     
-    // 确保分页容器可见
-    paginationContainer.style.display = 'block';
+    // 清空容器并一次性添加所有元素
+    while (paginationContainer.firstChild) {
+        paginationContainer.removeChild(paginationContainer.firstChild);
+    }
+    paginationContainer.appendChild(fragment);
 }
 
-// 更新统计信息
+// 处理页码变化的辅助函数
+function handlePageChange(page) {
+    if (page >= 1 && page <= Math.ceil(sortedCourses.length / rowsPerPage)) {
+        currentPage = page;
+        updateTable();
+    }
+    
+    // 确保分页容器可见 - 直接获取元素避免全局变量依赖
+    const paginationContainer = document.getElementById('pagination');
+    if (paginationContainer) {
+        paginationContainer.style.display = 'block';
+    }
+}
+
+// 更新统计信息 - 性能优化版本
 function updateStatistics() {
-    // 计算统计数据
+    // 一次性准备好所有数据，减少DOM操作
     const totalCourses = allCourses.length;
     const filteredCoursesCount = filteredCourses.length;
     
-    // 计算可报名课程数（假设截止时间晚于当前时间的课程为可报名课程）
-    const now = new Date();
-    const availableCoursesCount = filteredCourses.filter(course => {
-        const deadline = new Date(course['报名截止时间']);
-        return deadline > now;
-    }).length;
+    // 利用预处理的时间戳进行计算，避免重复的日期转换
+    const now = Date.now();
     
-    // 计算课程类别数
-    const categories = new Set(allCourses.map(course => course['课程类别']));
-    const totalCategoriesCount = categories.size;
+    // 性能优化：使用预计算的时间戳进行快速筛选
+    const availableCoursesCount = filteredCourses.reduce((count, course) => {
+        // 使用预处理的时间戳，避免重复创建Date对象
+        return (course._deadlineTimestamp > now) ? count + 1 : count;
+    }, 0);
     
-    // 更新DOM - 使用新的统计元素类名
-    document.getElementById('total-courses').textContent = totalCourses;
-    document.getElementById('filtered-courses').textContent = filteredCoursesCount;
-    document.getElementById('available-courses').textContent = availableCoursesCount;
-    document.getElementById('total-categories').textContent = totalCategoriesCount;
+    // 获取并格式化当前时间为'日数小时'格式
+    const currentTime = new Date();
+    const day = currentTime.getDate();
+    const hour = currentTime.getHours();
+    const formattedTime = `${day}日${hour}点`;
+    
+    // 批量更新DOM，减少重绘和回流
+    // 使用HTML中实际存在的DOM元素ID
+    const totalCountElement = document.getElementById('total-courses');
+    const filteredCountElement = document.getElementById('filtered-courses');
+    const availableCountElement = document.getElementById('available-courses');
+    const updateTimeElement = document.getElementById('update-time');
+    
+    if (totalCountElement) totalCountElement.textContent = totalCourses;
+    if (filteredCountElement) filteredCountElement.textContent = filteredCoursesCount;
+    if (availableCountElement) availableCountElement.textContent = availableCoursesCount;
+    if (updateTimeElement) updateTimeElement.textContent = formattedTime;
 }
 
 // 图表功能已移除
-
-// 导出数据
-function exportData() {
-    // 创建CSV内容
-    const headers = ['类别', '主讲教师', '名称', '学分', '报名截止时间', '招收情况', '开始时间', '结束时间', '申请状态', '作业上传', '赋予学分'];
-    let csvContent = headers.join(',') + '\n';
-    
-    filteredCourses.forEach(course => {
-        const row = headers.map(header => {
-            const value = course[header] || '';
-            // 处理包含逗号的字段
-            return `"${value}"`;
-        });
-        csvContent += row.join(',') + '\n';
-    });
-    
-    // 创建下载链接
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `拓展教育课程数据_${new Date().toLocaleDateString()}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 
 // 防抖函数
 function debounce(func, wait) {

@@ -22,25 +22,15 @@
                         <option value="">全部</option>
                     </select>
                 </div>
-                
-                <div class="filter-item">
-                    <label for="teacher">主讲教师：</label>
-                    <input type="text" id="teacher" placeholder="输入教师姓名" class="filter-input">
-                </div>
-                
-                <div class="filter-item">
-                    <label for="course-name">课程名称：</label>
-                    <input type="text" id="course-name" placeholder="输入课程名称" class="filter-input">
-                </div>
             </div>
             
             <div class="filter-row">
                 <div class="filter-item full-width button-control">
-                    <!-- 将统计部分移动到这里，并放置在左侧 -->
+                    <!-- 统计部分 -->
                     <div class="stats-section inline-stats">
                         <div class="stat-card-mini">
-                            <div class="stat-label-mini">总课程数</div>
-                            <div class="stat-number-mini" id="total-courses">0</div>
+                            <div class="stat-label-mini">更新时间</div>
+                            <div class="stat-number-mini" id="update-time">--:--:--</div>
                         </div>
                         <div class="stat-card-mini">
                             <div class="stat-label-mini">筛选后课程数</div>
@@ -50,12 +40,10 @@
                             <div class="stat-label-mini">可报名课程数</div>
                             <div class="stat-number-mini" id="available-courses">0</div>
                         </div>
-
-                    </div>
-                    
-                    <div class="buttons-container">
-                        <button id="reset-btn" class="btn btn-secondary">重置筛选</button>
-                        <button id="export-btn" class="btn btn-success">导出数据</button>
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">总课程数</div>
+                            <div class="stat-number-mini" id="total-courses">0</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,12 +309,12 @@
                             课程名称
                             <span class="sort-indicator"></span>
                         </th>
-                        <th class="sortable" data-sort="学分">
-                            学分
-                            <span class="sort-indicator"></span>
-                        </th>
                         <th class="sortable" data-sort="报名截止时间">
                             报名截止时间
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="学分">
+                            学分
                             <span class="sort-indicator"></span>
                         </th>
                         <th class="sortable" data-sort="招收情况">

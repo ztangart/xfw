@@ -148,6 +148,39 @@ header h1 {
     margin-bottom: 30px;
 }
 
+/* 内联统计样式 - 用于缩小的统计卡片并排显示 */
+.inline-stats {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 5px 0;
+}
+
+/* 缩小的统计卡片样式 */
+.stat-card-mini {
+    background: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    min-width: 100px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* 缩小统计卡片中的文本 */
+.stat-label-mini {
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+}
+
+.stat-number-mini {
+    font-size: 0.9rem;
+}
+
 .stat-card {
     background: white;
     padding: 25px;
@@ -211,6 +244,17 @@ header h1 {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
+}
+
+/* 性能优化：使用CSS类代替内联样式 */
+.credit-cell {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.expired-text {
+    color: #94a3b8;
+    font-style: italic;
 }
 
 .data-table th {
@@ -412,6 +456,7 @@ footer {
     .stat-label-mini {
         font-size: 0.75rem;
     }
+}
 
 /* 动画效果 */
 @keyframes fadeIn {
