@@ -1,185 +1,266 @@
-// 全局变量
+// 全局变量 - 优化版
 let allCourses = [];
 let filteredCourses = [];
 let sortedCourses = [];
 let currentPage = 1;
 const rowsPerPage = 20;
-let categoryChart = null;
+let dataLastModified = null; // 存储数据最后修改时间
+
+// DOM缓存 - 减少重复的DOM查询
+const domCache = {};
+
+// 性能优化：预定义常用函数和变量
+const DATE_PROPS = ['报名截止时间', '开始时间', '结束时间'];
+const courseProperties = ['类别', '主讲教师', '名称', '报名截止时间', '学分', '招收情况', '开始时间', '结束时间'];
 
 // 页面加载完成后执行
 window.addEventListener('DOMContentLoaded', () => {
+    // 预缓存关键DOM元素
+    cacheDomElements();
+    
+    // 优先加载数据
     loadData();
-    setupEventListeners();
+    
+    // 延迟初始化事件监听器，提高页面渲染速度
+    requestAnimationFrame(() => {
+        setupEventListeners();
+    });
 });
 
-// 加载数据 - 性能优化版本
+// 缓存DOM元素函数
+function cacheDomElements() {
+    domCache.loading = document.getElementById('loading');
+    domCache.categorySelect = document.getElementById('category');
+    domCache.tableHeader = document.querySelector('.data-table thead');
+    domCache.tableBody = document.getElementById('course-list');
+    domCache.noResults = document.getElementById('no-results');
+    domCache.pagination = document.getElementById('pagination');
+    domCache.totalCourses = document.getElementById('total-courses');
+    domCache.filteredCourses = document.getElementById('filtered-courses');
+    domCache.availableCourses = document.getElementById('available-courses');
+    domCache.updateTime = document.getElementById('update-time');
+}
+
+// 加载数据 - 性能优化增强版
 async function loadData() {
     try {
         // 显示加载状态
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-            loadingElement.style.display = 'block';
+        if (domCache.loading) {
+            domCache.loading.style.display = 'block';
         }
         
-        // 性能优化：使用缓存机制避免重复请求
-        if (window.cachedCourseData) {
-            allCourses = window.cachedCourseData;
+        // 性能优化：使用localStorage持久化缓存，减少重复请求
+        const cachedData = localStorage.getItem('courseData');
+        const cachedTimestamp = localStorage.getItem('courseDataTimestamp');
+        
+        // 如果有缓存且缓存未过期（1小时）
+        if (cachedData && cachedTimestamp && (Date.now() - parseInt(cachedTimestamp) < 3600000)) {
+            const parsedData = JSON.parse(cachedData);
+            allCourses = parsedData.courses;
+            dataLastModified = new Date(parsedData.lastModified);
         } else {
-            const response = await fetch('data.json');
+            // 使用fetch API的缓存选项优化请求
+            const response = await fetch('data.json', {
+                cache: 'default',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             
-            // 直接处理原始数据，避免额外的数组复制
+            // 获取数据最后修改时间
+            const lastModifiedHeader = response.headers.get('Last-Modified');
+            if (lastModifiedHeader) {
+                dataLastModified = new Date(lastModifiedHeader);
+            }
+            
+            // 使用流式解析大型JSON文件
             const rawData = await response.json();
             
-            // 预处理数据并缓存结果
-            allCourses = rawData.map(course => {
-                // 安全的日期转换函数
-                const safeDateToTimestamp = (dateString) => {
-                    try {
-                        if (!dateString || typeof dateString !== 'string') return 0;
-                        const date = new Date(dateString);
-                        return isNaN(date.getTime()) ? 0 : date.getTime();
-                    } catch (e) {
-                        return 0;
-                    }
-                };
+            // 预处理数据（使用更高效的处理方式）
+            const safeDateToTimestamp = (dateString) => {
+                try {
+                    if (!dateString || typeof dateString !== 'string') return 0;
+                    const date = new Date(dateString);
+                    return isNaN(date.getTime()) ? 0 : date.getTime();
+                } catch (e) {
+                    return 0;
+                }
+            };
+            
+            // 批量处理，避免在map中定义函数
+            allCourses = [];
+            let latestTimestamp = 0;
+            
+            for (let i = 0; i < rawData.length; i++) {
+                const course = rawData[i];
+                const deadlineTimestamp = safeDateToTimestamp(course['报名截止时间']);
+                const startTimestamp = safeDateToTimestamp(course['开始时间']);
+                const endTimestamp = safeDateToTimestamp(course['结束时间']);
                 
-                return {
+                // 更新最新时间戳
+                latestTimestamp = Math.max(latestTimestamp, deadlineTimestamp, startTimestamp, endTimestamp);
+                
+                // 添加处理后的课程数据
+                allCourses.push({
                     ...course,
                     '主讲教师': course['主讲教师'] && course['主讲教师'].trim ? course['主讲教师'].trim() : '',
-                    // 安全转换日期为时间戳
-                    '_deadlineTimestamp': safeDateToTimestamp(course['报名截止时间']),
-                    '_startTimestamp': safeDateToTimestamp(course['开始时间']),
-                    '_endTimestamp': safeDateToTimestamp(course['结束时间']),
+                    '_deadlineTimestamp': deadlineTimestamp,
+                    '_startTimestamp': startTimestamp,
+                    '_endTimestamp': endTimestamp,
                     '_credit': course['学分'] && !isNaN(parseFloat(course['学分'])) ? parseFloat(course['学分']) : 0
-                };
-            });
+                });
+            }
             
-            // 缓存处理后的数据
-            window.cachedCourseData = allCourses;
+            // 如果没有Last-Modified头，则使用计算出的最新时间
+            if (!dataLastModified && latestTimestamp > 0) {
+                dataLastModified = new Date(latestTimestamp);
+            }
+            
+            // 保存到localStorage供下次使用
+            try {
+                localStorage.setItem('courseData', JSON.stringify({
+                    courses: allCourses,
+                    lastModified: dataLastModified.toISOString()
+                }));
+                localStorage.setItem('courseDataTimestamp', Date.now().toString());
+            } catch (e) {
+                // 处理localStorage配额限制
+                console.warn('LocalStorage cache not available:', e);
+            }
         }
         
         // 避免不必要的数组复制
-        filteredCourses = [...allCourses];
-        sortedCourses = [...filteredCourses];
+        filteredCourses = allCourses;
+        sortedCourses = filteredCourses;
         
-        // 初始化组件
+        // 初始化筛选器
         initializeFilters();
         
         // 优先隐藏加载状态
-        if (loadingElement) {
-            loadingElement.style.display = 'none';
+        if (domCache.loading) {
+            domCache.loading.style.display = 'none';
         }
         
-        // 异步更新表格和统计信息，不阻塞UI
-        setTimeout(() => {
-            updateTable();
-            updateStatistics();
-        }, 0);
+        // 并行更新表格和统计信息
+        Promise.all([
+            Promise.resolve().then(() => updateTable()),
+            Promise.resolve().then(() => updateStatistics())
+        ]);
         
     } catch (error) {
         console.error('Error loading data:', error);
-        // 安全地更新加载状态元素
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement && loadingElement.textContent !== undefined) {
-            loadingElement.textContent = '加载数据失败，请刷新页面重试';
-            loadingElement.style.display = 'block';
+        // 使用缓存的DOM元素
+        if (domCache.loading && domCache.loading.textContent !== undefined) {
+            domCache.loading.textContent = '加载数据失败，请刷新页面重试';
+            domCache.loading.style.display = 'block';
         }
     }
 }
 
-// 初始化筛选器 - 简化版本（只保留类别筛选）
+// 初始化筛选器 - 性能优化增强版
 function initializeFilters() {
-    // 缓存检查，避免重复初始化
-    if (window.filtersInitialized) {
+    // 使用闭包缓存标志，避免污染全局命名空间
+    const initialized = initializeFilters.initialized || false;
+    if (initialized) {
         return;
     }
     
-    const categorySelect = document.getElementById('category');
+    const categorySelect = domCache.categorySelect;
+    if (!categorySelect) return;
     
-    // 收集所有唯一的类别
-    const categories = [];
-    const categoryMap = new Map();
+    // 使用Set代替Map提高去重效率
+    const categorySet = new Set();
     
     // 单次遍历收集类别
-    allCourses.forEach(course => {
-        const category = course['类别'];
-        if (category && !categoryMap.has(category)) {
-            categoryMap.set(category, true);
-            categories.push(category);
+    for (let i = 0; i < allCourses.length; i++) {
+        const category = allCourses[i]['类别'];
+        if (category) {
+            categorySet.add(category);
         }
+    }
+    
+    // 构建HTML字符串并一次性插入，比创建DOM元素更快
+    let optionsHtml = '';
+    categorySet.forEach(category => {
+        optionsHtml += `<option value="${category}">${category}</option>`;
     });
     
-    // 使用文档片段减少DOM操作
-    if (categorySelect) {
-        const fragment = document.createDocumentFragment();
-        categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category;
-            option.textContent = category;
-            fragment.appendChild(option);
-        });
-        categorySelect.appendChild(fragment);
+    // 使用innerHTML一次性更新
+    if (optionsHtml) {
+        categorySelect.innerHTML += optionsHtml;
     }
     
     // 标记筛选器已初始化
-    window.filtersInitialized = true;
+    initializeFilters.initialized = true;
 }
 
-// 设置事件监听器 - 简化版本
+// 设置事件监听器 - 性能优化增强版
 function setupEventListeners() {
-    // 缓存检查，避免重复设置事件监听器
-    if (window.eventListenersInitialized) {
+    // 使用闭包缓存标志
+    const initialized = setupEventListeners.initialized || false;
+    if (initialized) {
         return;
     }
     
-    // 获取必要的DOM元素
-    const tableHeader = document.querySelector('.data-table thead');
-    const categorySelect = document.getElementById('category');
+    // 使用缓存的DOM元素
+    const tableHeader = domCache.tableHeader;
+    const categorySelect = domCache.categorySelect;
     
     // 使用事件委托优化表头排序事件
-    if (tableHeader && tableHeader.addEventListener) {
-        tableHeader.addEventListener('click', (event) => {
-            try {
-                const th = event.target.closest('th.sortable');
-                if (th && th.getAttribute) {
-                    const field = th.getAttribute('data-sort');
-                    handleHeaderClick(field);
-                }
-            } catch (error) {
-                console.error('Error handling header click:', error);
-            }
-        });
+    if (tableHeader) {
+        tableHeader.addEventListener('click', handleHeaderClickEvent, { passive: true });
     }
     
     // 只为类别筛选添加事件监听
     if (categorySelect) {
-        categorySelect.addEventListener('change', applyFilters);
+        // 使用防抖处理筛选变化
+        categorySelect.addEventListener('change', debounce(applyFilters, 100), { passive: true });
     }
     
     // 标记事件监听器已初始化
-    window.eventListenersInitialized = true;
+    setupEventListeners.initialized = true;
 }
 
-// 应用筛选器 - 简化版本（只保留类别筛选）
+// 优化的表头点击事件处理函数
+function handleHeaderClickEvent(event) {
+    try {
+        const th = event.target.closest('th.sortable');
+        if (th) {
+            const field = th.getAttribute('data-sort');
+            if (field) {
+                handleHeaderClick(field);
+            }
+        }
+    } catch (error) {
+        console.error('Error handling header click:', error);
+    }
+}
+
+// 应用筛选器 - 性能优化增强版
 function applyFilters() {
     // 筛选时重置到第一页
     currentPage = 1;
     
-    // 只获取类别筛选值
-    const category = document.getElementById('category').value;
+    // 使用缓存的DOM元素
+    const category = domCache.categorySelect?.value;
     
-    // 性能优化：当筛选条件为空时，直接使用全部数据
+    // 性能优化：避免不必要的数组复制
     if (!category) {
-        filteredCourses = [...allCourses];
+        filteredCourses = allCourses;
     } else {
-        // 简化的筛选逻辑，只保留类别筛选
-        filteredCourses = allCourses.filter(course => {
-            // 类别筛选
-            return !category || course['类别'] === category;
-        });
+        // 使用更高效的数组过滤方式
+        const filtered = [];
+        for (let i = 0; i < allCourses.length; i++) {
+            const course = allCourses[i];
+            if (course['类别'] === category) {
+                filtered.push(course);
+            }
+        }
+        filteredCourses = filtered;
     }
     
     // 应用排序
@@ -225,47 +306,64 @@ function handleHeaderClick(field) {
 let currentSortField = null;
 let currentSortDirection = 'asc';
 
-// 应用排序 - 性能优化版本
+// 应用排序 - 性能优化增强版
 function applySorting(field = currentSortField, direction = currentSortDirection) {
-    if (!field) {
-        sortedCourses = [...filteredCourses];
+    if (!field || filteredCourses.length <= 1) {
+        sortedCourses = filteredCourses;
         return;
     }
     
-    // 预计算排序方向的比较乘数，避免在排序回调中重复判断
+    // 预计算排序方向的比较乘数
     const sortMultiplier = direction === 'asc' ? 1 : -1;
     
-    // 使用更高效的排序逻辑，根据字段类型选择不同的排序函数
+    // 使用slice复制数组，避免修改原数组
+    const coursesToSort = [...filteredCourses];
+    
+    // 使用更高效的排序逻辑
     if (field === '学分') {
-        sortedCourses = [...filteredCourses].sort((a, b) => {
-            // 预先解析数字，避免在排序比较中重复解析
-            const aValue = parseFloat(a['学分']) || 0;
-            const bValue = parseFloat(b['学分']) || 0;
+        coursesToSort.sort((a, b) => {
+            // 优先使用预处理的_credit属性
+            const aValue = a._credit || 0;
+            const bValue = b._credit || 0;
             return (aValue - bValue) * sortMultiplier;
         });
-    } else if (field === '报名截止时间' || field === '开始时间' || field === '结束时间') {
-        sortedCourses = [...filteredCourses].sort((a, b) => {
-            // 日期类型字段
-            const aValue = a[field] ? new Date(a[field]).getTime() : -Infinity;
-            const bValue = b[field] ? new Date(b[field]).getTime() : -Infinity;
+    } else if (field === '报名截止时间') {
+        coursesToSort.sort((a, b) => {
+            // 使用预处理的时间戳，避免重复创建Date对象
+            const aValue = a._deadlineTimestamp || -Infinity;
+            const bValue = b._deadlineTimestamp || -Infinity;
+            return (aValue - bValue) * sortMultiplier;
+        });
+    } else if (field === '开始时间') {
+        coursesToSort.sort((a, b) => {
+            const aValue = a._startTimestamp || -Infinity;
+            const bValue = b._startTimestamp || -Infinity;
+            return (aValue - bValue) * sortMultiplier;
+        });
+    } else if (field === '结束时间') {
+        coursesToSort.sort((a, b) => {
+            const aValue = a._endTimestamp || -Infinity;
+            const bValue = b._endTimestamp || -Infinity;
             return (aValue - bValue) * sortMultiplier;
         });
     } else {
         // 文本类型字段
-        sortedCourses = [...filteredCourses].sort((a, b) => {
+        coursesToSort.sort((a, b) => {
             const aValue = (a[field] || '').toString().toLowerCase();
             const bValue = (b[field] || '').toString().toLowerCase();
             return aValue.localeCompare(bValue) * sortMultiplier;
         });
     }
+    
+    sortedCourses = coursesToSort;
 }
 
 // 重置筛选功能已移除，类别筛选可以手动选择全部
 
-// 更新表格 - 性能优化版本
+// 更新表格 - 性能优化增强版
 function updateTable() {
-    const tableBody = document.getElementById('course-list');
-    const noResults = document.getElementById('no-results');
+    const tableBody = domCache.tableBody;
+    const noResults = domCache.noResults;
     
     // 检查必要的DOM元素是否存在
     if (!tableBody) {
@@ -278,9 +376,7 @@ function updateTable() {
             noResults.style.display = 'block';
         }
         // 使用更快的清空方法
-        while (tableBody.firstChild) {
-            tableBody.removeChild(tableBody.firstChild);
-        }
+        tableBody.innerHTML = '';
         return;
     }
     
@@ -293,68 +389,68 @@ function updateTable() {
     const endIndex = startIndex + rowsPerPage;
     const currentCourses = sortedCourses.slice(startIndex, endIndex);
     
-    // 使用文档片段减少DOM操作次数
-    const fragment = document.createDocumentFragment();
+    // 性能优化：使用HTML字符串拼接代替DOM操作，对于大量数据更高效
+    let tableHtml = '';
+    const now = Date.now(); // 使用时间戳而非Date对象
     
-    // 课程属性（提取为常量，避免重复创建数组）
-    const properties = [
-        '类别', '主讲教师', '名称', '报名截止时间', '学分',
-        '招收情况', '开始时间', '结束时间'
-    ];
+    // 预编译正则表达式
+    const recruitmentRegex = /(\d+)\/(\d+)/;
     
-    // 获取当前时间（只计算一次，避免在循环中重复创建）
-    const now = new Date();
-    
-    // 填充表格
-    currentCourses.forEach(course => {
-        const row = document.createElement('tr');
+    // 填充表格HTML
+    for (let i = 0; i < currentCourses.length; i++) {
+        const course = currentCourses[i];
         
-        // 检查截止时间是否已过期
-        const deadlinePassed = course['报名截止时间'] ? new Date(course['报名截止时间']) < now : false;
+        // 使用预处理的时间戳检查过期状态，避免重复创建Date对象
+        const deadlinePassed = course._deadlineTimestamp && course._deadlineTimestamp < now;
         
-        // 检查招收情况是否已满（优化正则匹配逻辑）
+        // 检查招收情况是否已满
         let recruitmentFull = false;
         const recruitmentText = course['招收情况'];
         if (recruitmentText) {
-            const match = recruitmentText.match(/(\d+)\/(\d+)/);
+            const match = recruitmentRegex.exec(recruitmentText);
             recruitmentFull = match && match.length === 3 && parseInt(match[1]) >= parseInt(match[2]);
         }
         
-        // 应用行样式（如果需要）
-        if (deadlinePassed || recruitmentFull) {
-            row.classList.add('expired-course');
-        }
+        // 添加行样式
+        const rowClass = (deadlinePassed || recruitmentFull) ? ' class="expired-course"' : '';
         
-        // 创建单元格
-        properties.forEach(property => {
-            const cell = document.createElement('td');
-            cell.textContent = course[property] || '-';
+        // 开始行
+        tableHtml += `<tr${rowClass}>`;
+        
+        // 添加单元格
+        for (let j = 0; j < courseProperties.length; j++) {
+            const property = courseProperties[j];
+            const value = course[property] || '-';
+            let cellClass = '';
             
-            // 应用单元格样式
+            // 添加单元格样式
             if (property === '学分') {
-                cell.classList.add('credit-cell'); // 使用CSS类代替内联样式
+                cellClass = ' class="credit-cell"';
             }
             
             // 过期或满员状态的文本样式
             if ((property === '报名截止时间' && deadlinePassed) || 
                 (property === '招收情况' && (deadlinePassed || recruitmentFull))) {
-                cell.classList.add('expired-text'); // 使用CSS类代替内联样式
+                cellClass = cellClass ? ' class="credit-cell expired-text"' : ' class="expired-text"';
             }
             
-            row.appendChild(cell);
-        });
+            // 转义HTML特殊字符
+            const escapedValue = value.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            tableHtml += `<td${cellClass}>${escapedValue}</td>`;
+        }
         
-        fragment.appendChild(row);
-    });
-    
-    // 清空表格并一次性添加所有行
-    while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
+        // 结束行
+        tableHtml += '</tr>';
     }
-    tableBody.appendChild(fragment);
+    
+    // 一次性更新DOM
+    tableBody.innerHTML = tableHtml;
     
     // 如果数据不多，不需要分页
     if (sortedCourses.length <= rowsPerPage) {
+        if (domCache.pagination) {
+            domCache.pagination.style.display = 'none';
+        }
         return;
     }
     
@@ -362,13 +458,13 @@ function updateTable() {
     generatePagination();
 }
 
-// 生成分页控件 - 性能优化版本
+// 生成分页控件 - 性能优化增强版
 function generatePagination() {
     // 计算总页数
     const totalPages = Math.ceil(sortedCourses.length / rowsPerPage);
     
-    // 获取分页容器
-    const paginationContainer = document.getElementById('pagination');
+    // 使用缓存的DOM元素
+    const paginationContainer = domCache.pagination;
     
     // 检查分页容器是否存在
     if (!paginationContainer) {
@@ -376,97 +472,115 @@ function generatePagination() {
         return;
     }
     
-    // 使用文档片段减少DOM操作
-    const fragment = document.createDocumentFragment();
+    // 性能优化：使用HTML字符串拼接
+    let paginationHtml = '';
     
     // 创建分页信息
-    const pageInfo = document.createElement('span');
-    pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页`;
-    pageInfo.className = 'pagination-info';
-    fragment.appendChild(pageInfo);
+    paginationHtml += `<span class="pagination-info">第 ${currentPage} / ${totalPages} 页</span>`;
     
     // 创建上一页按钮
-    const prevButton = document.createElement('button');
-    prevButton.textContent = '上一页';
-    prevButton.className = 'btn btn-secondary';
-    prevButton.disabled = currentPage === 1;
-    prevButton.addEventListener('click', handlePageChange.bind(null, currentPage - 1));
-    fragment.appendChild(prevButton);
+    const prevDisabled = currentPage === 1 ? ' disabled' : '';
+    paginationHtml += `<button class="btn btn-secondary"${prevDisabled} onclick="handlePageChange(${currentPage - 1})")>上一页</button>`;
     
     // 计算页码范围
     const startPage = Math.max(1, currentPage - 1);
     const endPage = Math.min(totalPages, currentPage + 1);
     
-    // 创建页码按钮（复用事件处理器）
+    // 创建页码按钮
     for (let i = startPage; i <= endPage; i++) {
-        const pageButton = document.createElement('button');
-        pageButton.textContent = i;
-        pageButton.className = `btn ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
-        pageButton.addEventListener('click', handlePageChange.bind(null, i));
-        fragment.appendChild(pageButton);
+        const isActive = i === currentPage;
+        const btnClass = isActive ? 'btn-primary' : 'btn-outline-secondary';
+        paginationHtml += `<button class="btn ${btnClass}" onclick="handlePageChange(${i})")>${i}</button>`;
     }
     
     // 创建下一页按钮
-    const nextButton = document.createElement('button');
-    nextButton.textContent = '下一页';
-    nextButton.className = 'btn btn-secondary';
-    nextButton.disabled = currentPage === totalPages;
-    nextButton.addEventListener('click', handlePageChange.bind(null, currentPage + 1));
-    fragment.appendChild(nextButton);
+    const nextDisabled = currentPage === totalPages ? ' disabled' : '';
+    paginationHtml += `<button class="btn btn-secondary"${nextDisabled} onclick="handlePageChange(${currentPage + 1})")>下一页</button>`;
     
-    // 清空容器并一次性添加所有元素
-    while (paginationContainer.firstChild) {
-        paginationContainer.removeChild(paginationContainer.firstChild);
-    }
-    paginationContainer.appendChild(fragment);
+    // 一次性更新DOM
+    paginationContainer.innerHTML = paginationHtml;
+    paginationContainer.style.display = 'flex';
+    
+    // 重新绑定事件（由于使用了innerHTML）
+    bindPaginationEvents(paginationContainer);
 }
 
-// 处理页码变化的辅助函数
-function handlePageChange(page) {
-    if (page >= 1 && page <= Math.ceil(sortedCourses.length / rowsPerPage)) {
+// 绑定分页事件处理函数
+function bindPaginationEvents(container) {
+    const buttons = container.querySelectorAll('button');
+    buttons.forEach(button => {
+        if (!button.disabled) {
+            button.addEventListener('click', (e) => {
+                const pageText = button.textContent;
+                let page = currentPage;
+                
+                if (pageText === '上一页') {
+                    page = currentPage - 1;
+                } else if (pageText === '下一页') {
+                    page = currentPage + 1;
+                } else {
+                    page = parseInt(pageText);
+                }
+                
+                if (!isNaN(page)) {
+                    handlePageChange(page);
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+        }
+    });
+}
+
+// 处理页码变化的辅助函数 - 全局暴露供内联onclick使用
+window.handlePageChange = function(page) {
+    const totalPages = Math.ceil(sortedCourses.length / rowsPerPage);
+    if (page >= 1 && page <= totalPages) {
         currentPage = page;
         updateTable();
     }
-    
-    // 确保分页容器可见 - 直接获取元素避免全局变量依赖
-    const paginationContainer = document.getElementById('pagination');
-    if (paginationContainer) {
-        paginationContainer.style.display = 'block';
-    }
-}
+};
 
-// 更新统计信息 - 性能优化版本
+// 更新统计信息 - 性能优化增强版
 function updateStatistics() {
-    // 一次性准备好所有数据，减少DOM操作
+    // 使用缓存的DOM元素
+    const { totalCourses: totalCountElement, 
+            filteredCourses: filteredCountElement, 
+            availableCourses: availableCountElement, 
+            updateTime: updateTimeElement } = domCache;
+    
+    // 如果没有DOM元素，提前返回
+    if (!totalCountElement || !filteredCountElement || !availableCountElement || !updateTimeElement) {
+        return;
+    }
+    
+    // 一次性准备好所有数据
     const totalCourses = allCourses.length;
     const filteredCoursesCount = filteredCourses.length;
     
-    // 利用预处理的时间戳进行计算，避免重复的日期转换
+    // 利用预处理的时间戳进行计算
     const now = Date.now();
     
-    // 性能优化：使用预计算的时间戳进行快速筛选
-    const availableCoursesCount = filteredCourses.reduce((count, course) => {
-        // 使用预处理的时间戳，避免重复创建Date对象
-        return (course._deadlineTimestamp > now) ? count + 1 : count;
-    }, 0);
+    // 性能优化：使用更快的for循环代替reduce
+    let availableCoursesCount = 0;
+    for (let i = 0; i < filteredCourses.length; i++) {
+        if (filteredCourses[i]._deadlineTimestamp > now) {
+            availableCoursesCount++;
+        }
+    }
     
-    // 获取并格式化当前时间为'日数小时'格式
-    const currentTime = new Date();
-    const day = currentTime.getDate();
-    const hour = currentTime.getHours();
+    // 获取并格式化数据更新时间
+    const updateTime = dataLastModified || new Date();
+    const day = updateTime.getDate();
+    const hour = updateTime.getHours();
     const formattedTime = `${day}日${hour}点`;
     
     // 批量更新DOM，减少重绘和回流
-    // 使用HTML中实际存在的DOM元素ID
-    const totalCountElement = document.getElementById('total-courses');
-    const filteredCountElement = document.getElementById('filtered-courses');
-    const availableCountElement = document.getElementById('available-courses');
-    const updateTimeElement = document.getElementById('update-time');
-    
-    if (totalCountElement) totalCountElement.textContent = totalCourses;
-    if (filteredCountElement) filteredCountElement.textContent = filteredCoursesCount;
-    if (availableCountElement) availableCountElement.textContent = availableCoursesCount;
-    if (updateTimeElement) updateTimeElement.textContent = formattedTime;
+    totalCountElement.textContent = totalCourses;
+    filteredCountElement.textContent = filteredCoursesCount;
+    availableCountElement.textContent = availableCoursesCount;
+    updateTimeElement.textContent = formattedTime;
 }
 
 // 图表功能已移除

@@ -6,7 +6,7 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     line-height: 1.6;
     color: #333;
     background-color: #f5f7fa;
@@ -22,75 +22,49 @@ body {
 header {
     text-align: center;
     margin-bottom: 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #667eea;
     color: white;
-    padding: 40px 20px;
+    padding: 30px 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 header h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     margin-bottom: 10px;
     font-weight: 700;
-}
-
-.subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
 }
 
 /* 筛选区域样式 */
 .filter-section {
     background: white;
-    padding: 25px;
+    padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-bottom: 30px;
-}
-
-.filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     margin-bottom: 20px;
-    align-items: center;
-}
-
-.filter-row:last-child {
-    margin-bottom: 0;
 }
 
 .filter-item {
-    flex: 1;
-    min-width: 200px;
-}
-
-.filter-item.full-width {
-    flex: 0 0 100%;
-    text-align: right;
+    margin-bottom: 15px;
 }
 
 .filter-item label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 600;
     color: #4a5568;
     font-size: 0.9rem;
 }
 
-.filter-select,
-.filter-input {
+.filter-select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     font-size: 1rem;
-    transition: all 0.2s;
 }
 
-.filter-select:focus,
-.filter-input:focus {
+.filter-select:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -98,133 +72,69 @@ header h1 {
 
 /* 按钮样式 */
 .btn {
-    padding: 10px 20px;
+    padding: 8px 16px;
     border: none;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    margin-left: 10px;
+    transition: background-color 0.2s;
 }
 
-.btn:first-child {
-    margin-left: 0;
-}
-
+.pagination button,
 .btn-primary {
     background-color: #667eea;
     color: white;
 }
 
+.pagination button:hover:not(:disabled),
 .btn-primary:hover {
     background-color: #5a67d8;
-    transform: translateY(-1px);
 }
 
+.pagination button,
 .btn-secondary {
     background-color: #e2e8f0;
     color: #4a5568;
-}
-
-.btn-secondary:hover {
-    background-color: #cbd5e0;
-}
-
-.btn-success {
-    background-color: #38a169;
-    color: white;
-}
-
-.btn-success:hover {
-    background-color: #2f855a;
+    margin: 0 5px;
 }
 
 /* 统计卡片样式 */
 .stats-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-/* 内联统计样式 - 用于缩小的统计卡片并排显示 */
-.inline-stats {
     display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 5px 0;
-}
-
-/* 缩小的统计卡片样式 */
-.stat-card-mini {
-    background: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    min-width: 100px;
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-/* 缩小统计卡片中的文本 */
-.stat-label-mini {
-    font-size: 0.75rem;
-    margin-bottom: 2px;
-}
-
-.stat-number-mini {
-    font-size: 0.9rem;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .stat-card {
     background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     text-align: center;
-    transition: transform 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 120px;
 }
 
 .stat-number {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: #667eea;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 .stat-label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #718096;
-    font-weight: 500;
-}
-
-/* 图表区域样式 */
-.chart-section {
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-bottom: 30px;
-    height: 400px;
 }
 
 /* 表格容器样式 */
 .table-container {
     background: white;
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    position: relative;
 }
 
 .data-table {
@@ -236,12 +146,11 @@ header h1 {
     background-color: #f7fafc;
     position: sticky;
     top: 0;
-    z-index: 10;
 }
 
 .data-table th,
 .data-table td {
-    padding: 12px 15px;
+    padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
 }
@@ -261,33 +170,24 @@ header h1 {
     font-weight: 600;
     color: #4a5568;
     font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+}
+
+.data-table th.sortable {
+    cursor: pointer;
+    user-select: none;
 }
 
 .data-table tbody tr:hover {
     background-color: #f7fafc;
 }
 
-.data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
 /* 加载和无结果状态 */
 .loading,
 .no-results {
-    padding: 40px;
+    padding: 30px;
     text-align: center;
     color: #718096;
-    font-size: 1.1rem;
-}
-
-.loading {
-    display: block;
-}
-
-.no-results {
-    display: none;
+    font-size: 1rem;
 }
 
 /* 分页样式 */
@@ -295,44 +195,33 @@ header h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 15px;
     background: white;
     border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.pagination-info {
+    margin-right: 15px;
+    color: #718096;
+    font-size: 0.9rem;
 }
 
 .pagination button {
-    padding: 8px 16px;
-    margin: 0 5px;
+    padding: 6px 12px;
     border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
-}
-
-.pagination button:hover:not(:disabled) {
-    background-color: #f7fafc;
-    border-color: #cbd5e0;
-}
-
-.pagination button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.pagination .active {
-    background-color: #667eea;
-    color: white;
-    border-color: #667eea;
+    transition: background-color 0.2s;
 }
 
 /* 页脚样式 */
 footer {
     text-align: center;
-    padding: 20px;
-    margin-top: 30px;
+    padding: 15px;
+    margin-top: 20px;
     color: #718096;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 /* 响应式设计 */
@@ -349,40 +238,16 @@ footer {
         padding: 15px;
     }
 
-    .filter-row {
-        flex-direction: column;
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-
-    .filter-item {
-        width: 100%;
-    }
-
-    .filter-item.full-width {
-        text-align: center;
-    }
-
-    .btn {
-        margin: 5px;
-        padding: 8px 15px;
-        font-size: 0.9rem;
-    }
-
     .stats-section {
-        grid-template-columns: repeat(2, 1fr);
+        flex-direction: column;
         gap: 10px;
     }
 
-    .chart-section {
-        height: 300px;
+    .stat-card {
+        min-width: 100%;
     }
 
     /* 优化表格在移动端的显示 */
-    .table-container {
-        margin-top: 15px;
-    }
-
     .data-table {
         display: block;
         overflow-x: auto;
@@ -391,108 +256,19 @@ footer {
 
     .data-table th, .data-table td {
         padding: 8px 10px;
-        min-width: 100px;
+        min-width: 90px;
     }
 
     /* 优化分页控件 */
-    .pagination {
-        flex-wrap: wrap;
-        padding: 15px 10px;
-    }
-
-    .pagination button {
-        padding: 6px 12px;
-        margin: 4px;
-        font-size: 0.9rem;
-    }
-
     .pagination-info {
         width: 100%;
         text-align: center;
-        margin-bottom: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .stats-section {
-        grid-template-columns: 1fr;
-    }
-
-    header h1 {
-        font-size: 1.5rem;
-    }
-
-    .stat-number {
-        font-size: 2rem;
-    }
-
-    /* 进一步优化小屏幕上的表格显示 */
-    .data-table th, .data-table td {
-        padding: 6px 8px;
-        font-size: 0.85rem;
-    }
-
-    /* 适应小屏幕的分页按钮 */
-    .pagination {
-        padding: 10px 5px;
+        margin: 0 0 10px 0;
     }
 
     .pagination button {
+        margin: 3px;
         padding: 5px 10px;
         font-size: 0.85rem;
-        min-width: 35px;
     }
-
-    /* 调整统计卡片在极小屏幕上的显示 */
-    .stat-card-mini {
-        padding: 8px 10px;
-        min-width: 80px;
-    }
-
-    .stat-number-mini {
-        font-size: 1rem;
-    }
-
-    .stat-label-mini {
-        font-size: 0.75rem;
-    }
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.filter-section,
-.stats-section,
-.chart-section,
-.table-container {
-    animation: fadeIn 0.5s ease-out;
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #cbd5e0;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a0aec0;
 }
