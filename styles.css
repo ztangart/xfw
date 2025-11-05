@@ -129,6 +129,57 @@ header h1 {
     color: #718096;
 }
 
+/* 优化的统计卡片样式 - 缩小一半并保持在同一水平线 */
+.stats-section.inline-stats {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex-shrink: 0;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    flex-wrap: nowrap;
+    font-weight: normal; /* 确保整个统计区域所有文本不加粗 */
+}
+
+.stat-card-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 6px; /* 进一步减少内边距 */
+    font-size: 0.7rem; /* 保持字体大小 */
+    text-align: center;
+    background-color: #f8fafc;
+    border-radius: 4px; /* 保持圆角 */
+    min-width: 0; /* 允许更小的宽度 */
+    flex: 1;
+    max-width: 22%; /* 确保四个模块在一行 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* 轻微阴影 */
+    margin: 0; /* 移除可能的外边距 */
+    height: auto; /* 让高度自适应内容 */
+    font-weight: normal; /* 确保卡片内所有文本不加粗 */
+}
+
+.stat-label-mini {
+    font-size: 0.7rem; /* 保持标签字体大小 */
+    color: #718096;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    font-weight: normal; /* 明确设置标签不加粗 */
+}
+
+.stat-number-mini {
+    font-size: 0.9rem; /* 保持数字字体大小 */
+    font-weight: normal; /* 确保数字不加粗 */
+    color: #667eea;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+}
+
 /* 表格容器样式 */
 .table-container {
     background: white;
