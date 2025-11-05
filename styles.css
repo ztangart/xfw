@@ -10,6 +10,9 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f5f7fa;
+    overflow-x: hidden; /* 防止水平溢出 */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .container {
@@ -141,6 +144,7 @@ header h1 {
     margin: 0;
     flex-wrap: nowrap;
     font-weight: normal; /* 确保整个统计区域所有文本不加粗 */
+    box-sizing: border-box;
 }
 
 .stat-card-mini {
@@ -279,6 +283,8 @@ footer {
 @media (max-width: 768px) {
     .container {
         padding: 10px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     header h1 {
@@ -287,11 +293,28 @@ footer {
 
     .filter-section {
         padding: 15px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .stats-section {
         flex-direction: column;
         gap: 10px;
+    }
+
+    .stats-section.inline-stats {
+        flex-wrap: wrap; /* 允许统计卡片在移动端换行 */
+        gap: 5px; /* 减小间距 */
+    }
+
+    .stat-card-mini {
+        max-width: 45%; /* 在移动端每行显示两个 */
+        font-size: 0.6rem; /* 进一步减小字体 */
+        padding: 2px 4px;
+    }
+
+    .stat-label-mini, .stat-number-mini {
+        font-size: 0.6rem; /* 进一步减小字体 */
     }
 
     .stat-card {
@@ -303,6 +326,8 @@ footer {
         display: block;
         overflow-x: auto;
         font-size: 0.9rem;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .data-table th, .data-table td {
