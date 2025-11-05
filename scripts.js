@@ -11,7 +11,7 @@ const domCache = {};
 
 // 性能优化：预定义常用函数和变量
 const DATE_PROPS = ['报名截止时间', '开始时间', '结束时间'];
-const courseProperties = ['类别', '主讲教师', '名称', '报名截止时间', '学分', '招收情况', '开始时间', '结束时间'];
+const courseProperties = ['名称', '报名截止时间', '招收情况', '开始时间', '结束时间', '学分', '主讲教师', '类别'];
 
 // 页面加载完成后执行
 window.addEventListener('DOMContentLoaded', () => {

@@ -33,12 +33,12 @@
                             <div class="stat-number-mini" id="update-time">--:--:--</div>
                         </div>
                         <div class="stat-card-mini">
-                            <div class="stat-label-mini">筛选后课程数</div>
-                            <div class="stat-number-mini" id="filtered-courses">0</div>
-                        </div>
-                        <div class="stat-card-mini">
                             <div class="stat-label-mini">可报名课程数</div>
                             <div class="stat-number-mini" id="available-courses">0</div>
+                        </div>
+                        <div class="stat-card-mini">
+                            <div class="stat-label-mini">筛选后课程数</div>
+                            <div class="stat-number-mini" id="filtered-courses">0</div>
                         </div>
                         <div class="stat-card-mini">
                             <div class="stat-label-mini">总课程数</div>
@@ -297,24 +297,11 @@
                 <table id="course-table" class="data-table">
                     <thead>
                     <tr>
-                        <th class="sortable" data-sort="类别">
-                            类别
-                            <span class="sort-indicator"></span>
-                        </th>
-                        <th class="sortable" data-sort="主讲教师">
-                            主讲教师
-                            <span class="sort-indicator"></span>
-                        </th>
-                        <th class="sortable" data-sort="名称">
+                        <th>
                             课程名称
-                            <span class="sort-indicator"></span>
                         </th>
                         <th class="sortable" data-sort="报名截止时间">
                             报名截止时间
-                            <span class="sort-indicator"></span>
-                        </th>
-                        <th class="sortable" data-sort="学分">
-                            学分
                             <span class="sort-indicator"></span>
                         </th>
                         <th class="sortable" data-sort="招收情况">
@@ -328,6 +315,16 @@
                         <th class="sortable" data-sort="结束时间">
                             结束时间
                             <span class="sort-indicator"></span>
+                        </th>
+                        <th class="sortable" data-sort="学分">
+                            学分
+                            <span class="sort-indicator"></span>
+                        </th>
+                        <th>
+                            主讲教师
+                        </th>
+                        <th>
+                            类别
                         </th>
                     </tr>
                 </thead>
